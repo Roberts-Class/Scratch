@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scratch English Learning</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F9F9F9;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+
+        /* Sidebar category active state */
+        .category-item.active {
+            background-color: #E6F0FF;
+            border-left: 4px solid #4C97FF;
+        }
+        
+        .speak-btn { transition: transform 0.1s; }
+        .speak-btn:active { transform: scale(0.9); }
+
+        /* Mic pulse animation */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+            100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .listening-mic {
+            animation: pulse-ring 1.5s infinite;
+            background-color: #EF4444 !important;
+            color: white !important;
+        }
+
+        /* Grammar Drag/Click Slots */
+        .grammar-slot {
+            min-height: 40px;
+            border: 2px dashed #CBD5E1;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #F8FAFC;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .grammar-slot.filled {
+            border-style: solid;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .phrase-btn {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .phrase-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-gray-800">
+
+    <header class="bg-[#855CD6] text-white p-2 flex items-center justify-between shadow-sm z-10">
+        <div class="flex items-center gap-4">
+            <div class="font-bold text-xl tracking-wider px-4">SCRATCH</div>
+            <div class="text-sm border-l border-white/30 pl-4">English Vocabulary & Grammar Logic</div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex overflow-hidden">
+        
+        <aside class="w-24 bg-white border-r border-gray-200 flex flex-col items-center py-4 overflow-y-auto z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] relative">
+            
+            <!-- Wheel Tab -->
+            <button id="btn-wheel-mode" class="w-full py-3 flex flex-col items-center gap-1 hover:bg-gray-100 transition-colors border-b border-gray-200 mb-2 font-bold text-green-500">
+                <i class="fa-solid fa-dharmachakra text-xl"></i>
+                <span class="text-[10px] uppercase text-center leading-tight">Spin<br>Wheel</span>
+            </button>
+
+            <!-- Code Tab (Review Mode) -->
+            <button id="btn-code-mode" class="w-full py-3 flex flex-col items-center gap-1 hover:bg-gray-100 transition-colors border-b border-gray-200 mb-2 font-bold text-[#4C97FF]">
+                <i class="fa-solid fa-book-open text-xl"></i>
+                <span class="text-[10px] uppercase">Review Words</span>
+            </button>
+
+            <!-- Categories -->
+            <div id="categories-container" class="w-full flex flex-col gap-1 flex-1">
+                <!-- Dynamically populated by JS -->
+            </div>
+            
+            <!-- Quiz Tab -->
+            <div class="mt-auto w-full pt-2 border-t border-gray-200">
+                <button id="btn-quiz-mode" class="w-full py-3 flex flex-col items-center gap-1 hover:bg-gray-100 transition-colors font-bold text-red-500">
+                    <i class="fa-solid fa-microphone text-xl"></i>
+                    <span class="text-[10px] uppercase text-center leading-tight">Pronunciation<br>Quiz</span>
+                </button>
+            </div>
+        </aside>
+
+        <section class="flex-1 bg-white flex flex-col h-full overflow-hidden relative">
+            
+            <!-- VIEW: Wheel -->
+            <div id="view-wheel" class="h-full hidden flex-col">
+                <div class="bg-green-50 p-4 border-b border-green-100 flex justify-between items-center shadow-sm z-10">
+                    <h2 class="font-bold text-lg text-green-700"><i class="fa-solid fa-dharmachakra mr-2"></i> Random Number Wheel</h2>
+                    <div class="text-sm text-green-500">Spin the wheel to get a completely random number 1-21!</div>
+                </div>
+                <div class="flex-1 flex flex-col items-center justify-center p-8 bg-gray-50 relative overflow-hidden">
+                    <div class="relative flex flex-col items-center">
+                        <!-- Pointer -->
+                        <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[25px] border-t-gray-800 z-20 drop-shadow-md"></div>
+                        <!-- Wheel Container -->
+                        <div class="rounded-full shadow-2xl bg-white p-2">
+                            <canvas id="wheel-canvas" width="400" height="400" class="rounded-full"></canvas>
+                        </div>
+                        <!-- Result -->
+                        <div id="wheel-result" class="mt-8 text-4xl font-bold text-gray-800 h-12 flex items-center justify-center">
+                            <span class="text-gray-400 text-xl font-medium">Ready to spin!</span>
+                        </div>
+                        <!-- Spin Button -->
+                        <button id="btn-spin-wheel" class="mt-6 px-12 py-4 rounded-full bg-green-500 hover:bg-green-600 text-white font-bold text-2xl transition-colors shadow-lg transform hover:scale-105 active:scale-95">
+                            SPIN!
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 1: Code Review Mode -->
+            <div id="view-code-review" class="h-full hidden flex-col">
+                <div class="bg-blue-50 p-4 border-b border-blue-100 flex justify-between items-center shadow-sm z-10">
+                    <h2 class="font-bold text-lg text-blue-700"><i class="fa-solid fa-graduation-cap mr-2"></i> Word Review</h2>
+                    <div class="text-sm text-blue-500">Listen and practice the main categories!</div>
+                </div>
+                
+                <div class="flex-1 flex flex-col items-center justify-center p-8 bg-gray-50 relative">
+                    <div class="w-full max-w-xl bg-white rounded-xl shadow-lg p-10 flex flex-col items-center min-h-[400px] border border-gray-100 relative">
+                        
+                        <!-- Main Word Display -->
+                        <div class="flex-1 flex flex-col items-center justify-center w-full text-center">
+                            
+                            <div id="review-color-dot" class="mb-8 w-24 h-24 rounded-full flex items-center justify-center shadow-lg border-4 border-white text-white text-4xl">
+                            </div>
+
+                            <h3 id="review-word" class="text-5xl font-bold text-gray-800 mb-8 tracking-wide">Word</h3>
+                            
+                            <!-- Pronunciation Button -->
+                            <button id="btn-review-speak" class="speak-btn bg-blue-100 text-blue-600 hover:bg-blue-200 p-6 rounded-full text-3xl shadow-sm border border-blue-200 transition-colors group">
+                                <i class="fa-solid fa-volume-high group-hover:scale-110 transition-transform"></i>
+                            </button>
+                            <p class="text-sm text-gray-400 mt-4">Click to hear</p>
+                        </div>
+
+                        <!-- Navigation -->
+                        <div class="w-full flex justify-between items-center mt-8 border-t pt-6">
+                            <button id="btn-review-prev" class="px-6 py-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition-colors flex items-center gap-2">
+                                <i class="fa-solid fa-arrow-left"></i> Previous
+                            </button>
+                            
+                            <div class="text-base text-gray-500 font-bold">
+                                <span id="review-current-index">1</span> / <span id="review-total">8</span>
+                            </div>
+
+                            <button id="btn-review-next" class="px-6 py-3 rounded-lg bg-[#4C97FF] hover:bg-blue-600 text-white font-bold transition-colors flex items-center gap-2 shadow-sm">
+                                Next <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-pronunciation-quiz" class="h-full hidden flex-col">
+                <div class="bg-red-50 p-4 border-b border-red-100 flex justify-between items-center shadow-sm z-10">
+                    <h2 class="font-bold text-lg text-red-700"><i class="fa-solid fa-microphone mr-2"></i> Pronunciation Quiz</h2>
+                    <div id="quiz-score-display" class="font-bold text-red-600 bg-red-100 px-4 py-1 rounded-full">Score: 0 / 8</div>
+                </div>
+                
+                <div class="flex-1 flex flex-col items-center justify-center p-8 bg-gray-50 relative">
+                    <div id="quiz-card" class="w-full max-w-xl bg-white rounded-xl shadow-lg p-10 flex flex-col items-center min-h-[450px] border border-gray-100 relative text-center">
+                        
+                        <div class="text-sm text-gray-400 font-bold tracking-widest uppercase mb-2">Word <span id="quiz-progress-text">1 of 8</span></div>
+                        <h3 class="text-xl text-gray-600 mb-6">Read this word out loud:</h3>
+                        
+                        <!-- Visual Word -->
+                        <div id="quiz-word-visual" class="mb-10 text-5xl text-gray-800 font-bold">
+                            Word
+                        </div>
+                        
+                        <!-- Microphone Button -->
+                        <button id="btn-quiz-mic" class="bg-red-100 text-red-500 hover:bg-red-200 w-32 h-32 rounded-full text-5xl shadow-md border-2 border-red-200 transition-colors flex items-center justify-center mb-6">
+                            <i class="fa-solid fa-microphone"></i>
+                        </button>
+                        
+                        <div id="quiz-feedback" class="h-16 text-lg font-medium text-gray-600 flex items-center justify-center">
+                            Click the microphone and say the word.
+                        </div>
+                        
+                        <button id="btn-quiz-skip" class="mt-auto px-8 py-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition-colors">
+                            Skip Word <i class="fa-solid fa-forward-step ml-2"></i>
+                        </button>
+                    </div>
+
+                    <!-- End Screen for Quiz -->
+                    <div id="quiz-end-screen" class="hidden w-full max-w-xl bg-white rounded-xl shadow-lg p-10 flex-col items-center text-center border border-gray-100">
+                        <div class="text-6xl text-green-500 mb-4"><i class="fa-solid fa-trophy"></i></div>
+                        <h2 class="text-3xl font-bold text-gray-800 mb-2">Quiz Complete!</h2>
+                        <p class="text-xl text-gray-600 mb-8">Your final score is <span id="final-score" class="font-bold text-blue-600">0</span> out of 8.</p>
+                        <button onclick="resetPronunciationQuiz()" class="px-8 py-3 rounded-lg bg-[#4C97FF] hover:bg-blue-600 text-white font-bold transition-colors shadow-sm">
+                            <i class="fa-solid fa-rotate-right mr-2"></i> Try Again
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-category" class="h-full hidden flex-col overflow-auto bg-gray-50 p-8">
+                
+                <!-- General Category View (for non-Control buttons) -->
+                <div id="workspace-general" class="hidden flex-col items-center justify-center h-full text-center">
+                    <div id="general-cat-dot" class="w-24 h-24 rounded-full mb-6 mx-auto shadow-lg"></div>
+                    <h2 class="text-4xl font-bold text-gray-800 mb-4" id="general-cat-name">Category Name</h2>
+                    <p class="text-xl text-gray-500 max-w-md mx-auto">Click "Code (Review)" to practice pronouncing this word, or click "Control" to learn grammar!</p>
+                </div>
+
+                <!-- Specialized Control View for "If...Then...Else" -->
+                <div id="workspace-control" class="hidden flex-col max-w-5xl mx-auto w-full">
+                    
+                    <!-- Title and Explanation -->
+                    <div class="bg-white rounded-xl p-8 shadow-sm border border-gray-200 mb-8">
+                        <div class="flex justify-between items-start mb-4">
+                            <h2 class="text-3xl font-bold text-amber-600 flex items-center gap-3">
+                                <i class="fa-solid fa-sitemap"></i> Logic Lesson: If... Then... Else
+                            </h2>
+                            <button id="btn-logic-help" class="bg-amber-100 text-amber-700 hover:bg-amber-200 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors">
+                                <i class="fa-solid fa-circle-question"></i> Need Help?
+                            </button>
+                        </div>
+                        
+                        <p class="text-lg text-gray-700 mb-6">In programming and English, we use this to make decisions. If a condition is true, we do one thing. Otherwise (else), we do something different.</p>
+                        
+                        <!-- The Help Box (Hidden by default) -->
+                        <div id="logic-help-box" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                            <h4 class="font-bold text-blue-800 mb-2">Think of it like a fork in the road!</h4>
+                            <ul class="list-disc pl-5 text-blue-700 space-y-2">
+                                <li><strong>IF</strong> is the question you ask (e.g., "Is it raining?").</li>
+                                <li><strong>THEN</strong> is what you do if the answer is YES (e.g., "Use an umbrella").</li>
+                                <li><strong>ELSE</strong> is what you do if the answer is NO (e.g., "Wear sunglasses").</li>
+                            </ul>
+                        </div>
+                        
+                        <!-- Sample Sentence with Audio -->
+                        <div class="bg-amber-50 p-6 rounded-lg border border-amber-200">
+                            <h3 class="font-bold text-amber-800 mb-3 text-sm uppercase tracking-wider">Listen to an example:</h3>
+                            <div class="flex items-center gap-4">
+                                <button class="speak-btn bg-amber-200 text-amber-700 hover:bg-amber-300 w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-sm" 
+                                        onclick="speakText('If it is raining, then take an umbrella, else wear sunglasses.')">
+                                    <i class="fa-solid fa-volume-high"></i>
+                                </button>
+                                <div class="text-lg">
+                                    <span class="font-bold text-amber-600">If</span> it is raining, 
+                                    <span class="font-bold text-amber-600">then</span> take an umbrella, 
+                                    <span class="font-bold text-amber-600">else</span> wear sunglasses.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl p-8 shadow-sm border border-gray-200">
+                        <div class="flex justify-between items-center mb-6">
+                            <div class="flex items-center gap-4">
+                                <h3 class="text-2xl font-bold text-gray-800"><i class="fa-solid fa-puzzle-piece text-blue-500 mr-2"></i> Grammar Test</h3>
+                                <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold text-sm shadow-inner">Score: <span id="grammar-score-display">0</span></span>
+                            </div>
+                            <button id="btn-next-grammar" class="text-blue-500 font-bold hover:text-blue-700 hidden">Next Question <i class="fa-solid fa-arrow-right"></i></button>
+                        </div>
+                        
+                        <p class="text-gray-600 mb-8">Click a phrase from the word bank to fill the empty slots and build a logical sentence.</p>
+
+                        <!-- Sentence Builder Area -->
+                        <div class="flex flex-col md:flex-row items-center gap-4 bg-gray-50 p-6 rounded-xl border border-gray-200 mb-8">
+                            <div class="font-bold text-amber-500 text-xl">IF</div>
+                            <div id="slot-0" class="grammar-slot flex-1 min-w-[200px] border-amber-300 text-center px-4 font-medium" data-slot="if">
+                                <span class="text-gray-400 text-sm">Click a phrase for condition...</span>
+                            </div>
+                            
+                            <div class="font-bold text-amber-500 text-xl mt-4 md:mt-0">THEN</div>
+                            <div id="slot-1" class="grammar-slot flex-1 min-w-[200px] border-green-300 text-center px-4 font-medium" data-slot="then">
+                                <span class="text-gray-400 text-sm">Click a phrase for action...</span>
+                            </div>
+
+                            <div class="font-bold text-amber-500 text-xl mt-4 md:mt-0">ELSE</div>
+                            <div id="slot-2" class="grammar-slot flex-1 min-w-[200px] border-blue-300 text-center px-4 font-medium" data-slot="else">
+                                <span class="text-gray-400 text-sm">Click phrase for other action...</span>
+                            </div>
+                        </div>
+
+                        <!-- Word Bank -->
+                        <h4 class="font-bold text-gray-500 text-sm uppercase tracking-wider mb-4 text-center">Word Bank</h4>
+                        <div id="grammar-word-bank" class="flex flex-wrap justify-center gap-4 mb-8 min-h-[60px]">
+                            <!-- Buttons populated by JS -->
+                        </div>
+
+                        <!-- Action / Feedback -->
+                        <div class="flex flex-col items-center">
+                            <div class="flex gap-4 items-center justify-center w-full mb-4">
+                                <button id="btn-check-grammar" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-10 rounded-full shadow-md transition-colors opacity-50 cursor-not-allowed" disabled>
+                                    Check Answer
+                                </button>
+                                <button id="btn-grammar-mic" class="hidden bg-red-100 text-red-500 hover:bg-red-200 w-12 h-12 rounded-full text-xl shadow-md border border-red-200 transition-colors items-center justify-center group relative" title="Read for +2 Points!">
+                                    <i class="fa-solid fa-microphone"></i>
+                                    <span class="absolute -top-10 scale-0 transition-all rounded bg-gray-800 p-2 text-xs text-white group-hover:scale-100 whitespace-nowrap">Read for +2 Points!</span>
+                                </button>
+                            </div>
+                            <div id="grammar-feedback" class="h-8 font-bold text-lg text-center flex items-center justify-center w-full"></div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            
+        </section>
+    </main>
+
+    <script>
+        const scratchData = [
+            { id: 'motion', name: 'Motion', color: '#4C97FF' },
+            { id: 'looks', name: 'Looks', color: '#9966FF' },
+            { id: 'sound', name: 'Sound', color: '#CF63CF' },
+            { id: 'events', name: 'Events', color: '#FFBF00' },
+            { id: 'control', name: 'Control', color: '#FFAB19' },
+            { id: 'sensing', name: 'Sensing', color: '#5CB1D6' },
+            { id: 'operators', name: 'Operators', color: '#59C059' },
+            { id: 'variables', name: 'Variables', color: '#FF8C1A' }
+        ];
+
+        // Grammar Test Data for "Control" view
+        const grammarQuestions = [
+            {
+                phrases: [
+                    { text: "you feel hungry", type: "if" },
+                    { text: "eat an apple", type: "then" },
+                    { text: "drink some water", type: "else" }
+                ]
+            },
+            {
+                phrases: [
+                    { text: "the weather is sunny", type: "if" },
+                    { text: "go to the park", type: "then" },
+                    { text: "stay inside", type: "else" }
+                ]
+            },
+            {
+                phrases: [
+                    { text: "you have homework", type: "if" },
+                    { text: "do it now", type: "then" },
+                    { text: "play a video game", type: "else" }
+                ]
+            },
+            {
+                phrases: [
+                    { text: "it is raining outside", type: "if" },
+                    { text: "take an umbrella", type: "then" },
+                    { text: "wear a sun hat", type: "else" }
+                ]
+            },
+            {
+                phrases: [
+                    { text: "you feel tired", type: "if" },
+                    { text: "go to sleep", type: "then" },
+                    { text: "stay awake", type: "else" }
+                ]
+            },
+            {
+                phrases: [
+                    { text: "the room is dark", type: "if" },
+                    { text: "turn on the light", type: "then" },
+                    { text: "open the window", type: "else" }
+                ]
+            },
+            {
+                phrases: [
+                    { text: "the traffic light is red", type: "if" },
+                    { text: "stop the car", type: "then" },
+                    { text: "keep driving", type: "else" }
+                ]
+            },
+            {
+                phrases: [
+                    { text: "it is very cold", type: "if" },
+                    { text: "wear a jacket", type: "then" },
+                    { text: "wear a t-shirt", type: "else" }
+                ]
+            },
+            {
+                phrases: [
+                    { text: "your phone battery is low", type: "if" },
+                    { text: "charge the battery", type: "then" },
+                    { text: "keep playing games", type: "else" }
+                ]
+            },
+            {
+                phrases: [
+                    { text: "the room is messy", type: "if" },
+                    { text: "clean it up", type: "then" },
+                    { text: "leave it alone", type: "else" }
+                ]
+            }
+        ];
+
+        let currentReviewIndex = 0;
+        let activeCategoryBtn = null;
+        
+        // Pronunciation Quiz State
+        let currentQuizIndex = 0;
+        let quizScore = 0;
+        
+        // Grammar Test State
+        let currentGrammarQIndex = 0;
+        let currentGrammarAnswers = [null, null, null]; // [if, then, else]
+        let grammarScore = 0;
+
+        // Wheel State
+        const numSegments = 21;
+        let wheelCurrentRotation = 0;
+        let isSpinning = false;
+
+        // Speech Synthesis Setup
+        const synth = window.speechSynthesis;
+        let voices = [];
+
+        function populateVoiceList() {
+            voices = synth.getVoices();
+        }
+        populateVoiceList();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = populateVoiceList;
+        }
+
+        function speakText(text) {
+            if (synth.speaking) synth.cancel();
+            setTimeout(() => {
+                if (text !== '') {
+                    const utterThis = new SpeechSynthesisUtterance(text);
+                    const englishVoice = voices.find(voice => voice.lang.startsWith('en'));
+                    if (englishVoice) utterThis.voice = englishVoice;
+                    utterThis.rate = 0.9;
+                    synth.speak(utterThis);
+                }
+            }, 50);
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+
+        function init() {
+            buildSidebar();
+            
+            // Wheel Listeners
+            document.getElementById('btn-wheel-mode').addEventListener('click', activateWheelMode);
+            document.getElementById('btn-spin-wheel').addEventListener('click', spinWheel);
+            document.getElementById('wheel-canvas').addEventListener('transitionend', handleWheelSpinEnd);
+            drawWheel();
+
+            // Code Review Listeners
+            document.getElementById('btn-review-next').addEventListener('click', () => navigateReview(1));
+            document.getElementById('btn-review-prev').addEventListener('click', () => navigateReview(-1));
+            document.getElementById('btn-review-speak').addEventListener('click', () => speakText(scratchData[currentReviewIndex].name));
+
+            // Main Nav Buttons
+            document.getElementById('btn-code-mode').addEventListener('click', activateCodeReviewMode);
+            document.getElementById('btn-quiz-mode').addEventListener('click', startPronunciationQuiz);
+            document.getElementById('btn-quiz-skip').addEventListener('click', nextQuizWord);
+            
+            // Grammar Buttons
+            document.getElementById('btn-check-grammar').addEventListener('click', checkGrammarAnswer);
+            document.getElementById('btn-next-grammar').addEventListener('click', loadGrammarQuestion);
+            document.getElementById('btn-logic-help').addEventListener('click', toggleLogicHelp);
+
+            initSpeechRecognition();
+            initGrammarSpeechRecognition();
+            activateCodeReviewMode();
+        }
+
+        function toggleLogicHelp() {
+            const helpBox = document.getElementById('logic-help-box');
+            if(helpBox.classList.contains('hidden')) {
+                helpBox.classList.remove('hidden');
+            } else {
+                helpBox.classList.add('hidden');
+            }
+        }
+
+        function buildSidebar() {
+            const container = document.getElementById('categories-container');
+            container.innerHTML = ''; // Clear container to prevent duplicates if called again
+            
+            scratchData.forEach(cat => {
+                const btn = document.createElement('button');
+                
+                // If it's the 'Control' category, make it fully interactive
+                if (cat.id === 'control') {
+                    btn.className = 'category-item w-full py-3 flex flex-col items-center gap-1 hover:bg-gray-100 transition-colors text-gray-700 relative border-b border-gray-100 cursor-pointer font-bold';
+                    btn.addEventListener('click', () => activateCategoryView(cat, btn));
+                } else {
+                    // For all other categories, keep identical visual styling (no graying out), 
+                    // but use the default cursor and omit the click listener so they do nothing.
+                    btn.className = 'category-item w-full py-3 flex flex-col items-center gap-1 text-gray-700 relative border-b border-gray-100 cursor-default font-bold';
+                }
+                
+                const dot = document.createElement('div');
+                dot.className = 'w-5 h-5 rounded-full mb-1 shadow-inner';
+                dot.style.backgroundColor = cat.color;
+                
+                const label = document.createElement('span');
+                label.className = 'text-[10px] font-bold uppercase tracking-wider';
+                label.innerText = cat.name;
+
+                btn.appendChild(dot);
+                btn.appendChild(label);
+
+                container.appendChild(btn);
+            });
+        }
+
+        function resetSidebarStyles() {
+            if(activeCategoryBtn) activeCategoryBtn.classList.remove('active');
+            
+            document.getElementById('btn-wheel-mode').classList.remove('bg-green-50');
+            document.getElementById('btn-wheel-mode').classList.add('hover:bg-gray-100');
+
+            document.getElementById('btn-code-mode').classList.remove('bg-blue-50');
+            document.getElementById('btn-code-mode').classList.add('hover:bg-gray-100');
+            document.getElementById('btn-quiz-mode').classList.remove('bg-red-50');
+            document.getElementById('btn-quiz-mode').classList.add('hover:bg-gray-100');
+            
+            document.getElementById('view-code-review').classList.add('hidden');
+            document.getElementById('view-code-review').classList.remove('flex');
+            document.getElementById('view-pronunciation-quiz').classList.add('hidden');
+            document.getElementById('view-pronunciation-quiz').classList.remove('flex');
+            document.getElementById('view-category').classList.add('hidden');
+            document.getElementById('view-category').classList.remove('flex');
+            document.getElementById('view-wheel').classList.add('hidden');
+            document.getElementById('view-wheel').classList.remove('flex');
+        }
+
+        function activateCodeReviewMode() {
+            resetSidebarStyles();
+            document.getElementById('btn-code-mode').classList.add('bg-blue-50');
+            document.getElementById('btn-code-mode').classList.remove('hover:bg-gray-100');
+            document.getElementById('view-code-review').classList.remove('hidden');
+            document.getElementById('view-code-review').classList.add('flex');
+            updateReviewCard();
+        }
+
+        function activateWheelMode() {
+            resetSidebarStyles();
+            document.getElementById('btn-wheel-mode').classList.add('bg-green-50');
+            document.getElementById('btn-wheel-mode').classList.remove('hover:bg-gray-100');
+            document.getElementById('view-wheel').classList.remove('hidden');
+            document.getElementById('view-wheel').classList.add('flex');
+        }
+
+        function drawWheel() {
+            const wheelCanvas = document.getElementById('wheel-canvas');
+            const ctx = wheelCanvas.getContext('2d');
+            // Using Scratch categorical colors
+            const colors = ['#4C97FF', '#FFBF00', '#CF63CF'];
+            const centerX = wheelCanvas.width / 2;
+            const centerY = wheelCanvas.height / 2;
+            const radius = 190;
+            const arc = (Math.PI * 2) / numSegments;
+
+            ctx.clearRect(0, 0, wheelCanvas.width, wheelCanvas.height);
+
+            for (let i = 0; i < numSegments; i++) {
+                const angle = i * arc;
+                ctx.beginPath();
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, angle, angle + arc);
+                ctx.lineTo(centerX, centerY);
+                ctx.fill();
+                
+                // Add a border between segments
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Draw Text
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(angle + arc / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold 20px Inter";
+                // Offset back from the edge
+                ctx.fillText((i + 1).toString(), radius - 15, 7);
+                ctx.restore();
+            }
+        }
+
+        function spinWheel() {
+            if (isSpinning) return;
+            isSpinning = true;
+            document.getElementById('wheel-result').innerHTML = `<span class="text-gray-400 text-xl font-medium animate-pulse">Spinning...</span>`;
+
+            // Use Cryptographically secure randomness to prevent patterns
+            const randomBuffer = new Uint32Array(1);
+            window.crypto.getRandomValues(randomBuffer);
+            const randomFraction = randomBuffer[0] / (0xFFFFFFFF + 1);
+            
+            const extraSpins = 5 + Math.floor(randomFraction * 5); // Randomly 5-9 full rotations
+            const randomDegrees = Math.floor(randomFraction * 360);
+            
+            wheelCurrentRotation += (360 * extraSpins) + randomDegrees;
+
+            const wheelCanvas = document.getElementById('wheel-canvas');
+            wheelCanvas.style.transition = 'transform 4s cubic-bezier(0.25, 0.1, 0.25, 1)';
+            wheelCanvas.style.transform = `rotate(${wheelCurrentRotation}deg)`;
+        }
+
+        function handleWheelSpinEnd() {
+            isSpinning = false;
+            
+            // Calculate which segment is at the top (270 degrees in Canvas math)
+            const normalizedRotation = wheelCurrentRotation % 360;
+            let pointedAngle = (270 - normalizedRotation) % 360;
+            if (pointedAngle < 0) pointedAngle += 360;
+
+            const segmentDegrees = 360 / numSegments;
+            const winningIndex = Math.floor(pointedAngle / segmentDegrees);
+            const winner = winningIndex + 1; // Convert index (0-20) back to physical numbering (1-21)
+
+            document.getElementById('wheel-result').innerHTML = `Number: <span class="text-green-500 text-5xl ml-2 drop-shadow-sm">${winner}</span>`;
+            speakText("Number " + winner);
+        }
+
+        function navigateReview(dir) {
+            currentReviewIndex += dir;
+            if (currentReviewIndex < 0) currentReviewIndex = scratchData.length - 1;
+            if (currentReviewIndex >= scratchData.length) currentReviewIndex = 0;
+            updateReviewCard();
+        }
+
+        function updateReviewCard() {
+            const item = scratchData[currentReviewIndex];
+            document.getElementById('review-color-dot').style.backgroundColor = item.color;
+            document.getElementById('review-word').textContent = item.name;
+            document.getElementById('review-current-index').textContent = currentReviewIndex + 1;
+        }
+
+        function activateCategoryView(categoryData, btnElement) {
+            resetSidebarStyles();
+            activeCategoryBtn = btnElement;
+            activeCategoryBtn.classList.add('active');
+            document.getElementById('view-category').classList.remove('hidden');
+            document.getElementById('view-category').classList.add('flex');
+
+            const viewGen = document.getElementById('workspace-general');
+            const viewControl = document.getElementById('workspace-control');
+
+            if (categoryData.id === 'control') {
+                viewGen.classList.add('hidden');
+                viewGen.classList.remove('flex');
+                viewControl.classList.remove('hidden');
+                viewControl.classList.add('flex');
+                
+                // Initialize Grammar Test
+                currentGrammarQIndex = 0;
+                loadGrammarQuestion();
+            } else {
+                viewControl.classList.add('hidden');
+                viewControl.classList.remove('flex');
+                viewGen.classList.remove('hidden');
+                viewGen.classList.add('flex');
+                
+                document.getElementById('general-cat-dot').style.backgroundColor = categoryData.color;
+                document.getElementById('general-cat-name').textContent = categoryData.name;
+                document.getElementById('general-cat-name').style.color = categoryData.color;
+            }
+        }
+
+        function loadGrammarQuestion() {
+            currentGrammarAnswers = [null, null, null];
+            document.getElementById('grammar-feedback').innerHTML = "";
+            document.getElementById('btn-next-grammar').classList.add('hidden');
+            
+            const checkBtn = document.getElementById('btn-check-grammar');
+            checkBtn.disabled = true;
+            checkBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const micBtn = document.getElementById('btn-grammar-mic');
+            micBtn.classList.add('hidden');
+            micBtn.classList.remove('flex');
+
+            // Reset slots UI
+            for (let i=0; i<3; i++) {
+                const slot = document.getElementById(`slot-${i}`);
+                slot.innerHTML = `<span class="text-gray-400 text-sm">Click a phrase below...</span>`;
+                slot.className = `grammar-slot flex-1 min-w-[200px] border-${i===0?'amber':i===1?'green':'blue'}-300 text-center px-4 font-medium`;
+                
+                // Add click event to remove item from slot back to bank
+                slot.onclick = () => {
+                    if(currentGrammarAnswers[i] !== null) {
+                        returnPhraseToBank(currentGrammarAnswers[i], i);
+                    }
+                };
+            }
+
+            const q = grammarQuestions[currentGrammarQIndex];
+            // Shuffle phrases for the bank
+            let shuffled = [...q.phrases].sort(() => Math.random() - 0.5);
+            
+            const bank = document.getElementById('grammar-word-bank');
+            bank.innerHTML = '';
+            
+            shuffled.forEach(phrase => {
+                const btn = document.createElement('button');
+                btn.className = 'phrase-btn bg-white border border-gray-300 text-gray-700 font-bold py-2 px-6 rounded-full shadow-sm text-lg';
+                btn.textContent = phrase.text;
+                btn.onclick = () => movePhraseToSlot(phrase, btn);
+                bank.appendChild(btn);
+            });
+        }
+
+        function movePhraseToSlot(phraseObj, btnElement) {
+            // Find first empty slot
+            const emptyIndex = currentGrammarAnswers.findIndex(val => val === null);
+            if (emptyIndex === -1) return; // Full
+
+            currentGrammarAnswers[emptyIndex] = phraseObj;
+            btnElement.style.display = 'none'; // hide in bank
+
+            const slot = document.getElementById(`slot-${emptyIndex}`);
+            slot.innerHTML = phraseObj.text;
+            slot.classList.add('filled', 'text-gray-800');
+
+            checkIfGrammarFull();
+        }
+
+        function returnPhraseToBank(phraseObj, slotIndex) {
+            currentGrammarAnswers[slotIndex] = null;
+            
+            // Reset slot UI
+            const slot = document.getElementById(`slot-${slotIndex}`);
+            slot.innerHTML = `<span class="text-gray-400 text-sm">Click a phrase below...</span>`;
+            slot.classList.remove('filled', 'text-gray-800', 'bg-red-50', 'border-red-500', 'bg-green-50', 'border-green-500');
+
+            // Find and show button in bank
+            const bank = document.getElementById('grammar-word-bank');
+            const btns = bank.getElementsByTagName('button');
+            for(let b of btns) {
+                if(b.textContent === phraseObj.text) {
+                    b.style.display = 'inline-block';
+                    break;
+                }
+            }
+            checkIfGrammarFull();
+        }
+
+        function checkIfGrammarFull() {
+            const isFull = currentGrammarAnswers.every(val => val !== null);
+            const checkBtn = document.getElementById('btn-check-grammar');
+            if (isFull) {
+                checkBtn.disabled = false;
+                checkBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                checkBtn.disabled = true;
+                checkBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                document.getElementById('grammar-feedback').innerHTML = "";
+            }
+        }
+
+        function checkGrammarAnswer() {
+            let allCorrect = true;
+            
+            // Check each slot vs phrase type
+            // slot 0 = if, slot 1 = then, slot 2 = else
+            const types = ['if', 'then', 'else'];
+            
+            for(let i=0; i<3; i++) {
+                const slot = document.getElementById(`slot-${i}`);
+                if (currentGrammarAnswers[i].type === types[i]) {
+                    slot.classList.add('bg-green-50', 'border-green-500');
+                    slot.classList.remove('bg-red-50', 'border-red-500');
+                } else {
+                    slot.classList.add('bg-red-50', 'border-red-500');
+                    slot.classList.remove('bg-green-50', 'border-green-500');
+                    allCorrect = false;
+                }
+            }
+
+            const feedback = document.getElementById('grammar-feedback');
+            if (allCorrect) {
+                feedback.innerHTML = `<span class="text-green-600"><i class="fa-solid fa-check-circle"></i> Excellent! Click the mic to practice speaking for +2 points!</span>`;
+                
+                // Read the whole sentence out loud
+                speakText(`If ${currentGrammarAnswers[0].text}, then ${currentGrammarAnswers[1].text}, else ${currentGrammarAnswers[2].text}.`);
+                
+                document.getElementById('btn-check-grammar').disabled = true;
+                document.getElementById('btn-check-grammar').classList.add('opacity-50');
+
+                // Show Mic
+                const micBtn = document.getElementById('btn-grammar-mic');
+                micBtn.classList.remove('hidden');
+                micBtn.classList.add('flex');
+                
+                // Show next button if available
+                if (currentGrammarQIndex < grammarQuestions.length - 1) {
+                    document.getElementById('btn-next-grammar').classList.remove('hidden');
+                    currentGrammarQIndex++;
+                } else {
+                    document.getElementById('btn-next-grammar').textContent = "Restart Test";
+                    document.getElementById('btn-next-grammar').classList.remove('hidden');
+                    currentGrammarQIndex = 0; // loop back
+                }
+            } else {
+                feedback.innerHTML = `<span class="text-red-500"><i class="fa-solid fa-xmark-circle"></i> Not quite right. Click the incorrect red boxes to try again.</span>`;
+            }
+        }
+
+        function startPronunciationQuiz() {
+            resetSidebarStyles();
+            document.getElementById('btn-quiz-mode').classList.add('bg-red-50');
+            document.getElementById('btn-quiz-mode').classList.remove('hover:bg-gray-100');
+            document.getElementById('view-pronunciation-quiz').classList.remove('hidden');
+            document.getElementById('view-pronunciation-quiz').classList.add('flex');
+            
+            resetPronunciationQuiz();
+        }
+
+        function resetPronunciationQuiz() {
+            currentQuizIndex = 0;
+            quizScore = 0;
+            updateQuizUI();
+            
+            document.getElementById('quiz-card').classList.remove('hidden');
+            document.getElementById('quiz-card').classList.add('flex');
+            document.getElementById('quiz-end-screen').classList.add('hidden');
+            document.getElementById('quiz-end-screen').classList.remove('flex');
+        }
+
+        function updateQuizUI() {
+            document.getElementById('quiz-score-display').textContent = `Score: ${quizScore} / 8`;
+            document.getElementById('quiz-progress-text').textContent = `${currentQuizIndex + 1} of 8`;
+            
+            const item = scratchData[currentQuizIndex];
+            const visual = document.getElementById('quiz-word-visual');
+            visual.textContent = item.name;
+            visual.style.color = item.color;
+            
+            document.getElementById('quiz-feedback').innerHTML = `Click the microphone and say the word.`;
+        }
+
+        function nextQuizWord() {
+            currentQuizIndex++;
+            if (currentQuizIndex >= scratchData.length) {
+                // End of quiz
+                document.getElementById('quiz-card').classList.add('hidden');
+                document.getElementById('quiz-card').classList.remove('flex');
+                document.getElementById('quiz-end-screen').classList.remove('hidden');
+                document.getElementById('quiz-end-screen').classList.add('flex');
+                document.getElementById('final-score').textContent = quizScore;
+            } else {
+                updateQuizUI();
+            }
+        }
+
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const micBtn = document.getElementById('btn-quiz-mic');
+            const feedback = document.getElementById('quiz-feedback');
+
+            if (!SpeechRecognition) {
+                feedback.innerHTML = "<span class='text-red-500'>Speech recognition not supported in this browser. Use Chrome.</span>";
+                micBtn.disabled = true;
+                micBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            micBtn.addEventListener('click', () => {
+                try { recognition.start(); } catch(e) {}
+            });
+
+            recognition.onstart = () => {
+                micBtn.classList.add('listening-mic');
+                feedback.innerHTML = `<span class="text-blue-500 animate-pulse"><i class="fa-solid fa-ear-listen mr-2"></i>Listening... Speak now!</span>`;
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript.toLowerCase().trim();
+                checkPronunciation(transcript);
+            };
+
+            recognition.onerror = (event) => {
+                feedback.innerHTML = `<span class="text-red-500"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Didn't catch that. Try again.</span>`;
+            };
+
+            recognition.onend = () => {
+                micBtn.classList.remove('listening-mic');
+            };
+        }
+
+        function initGrammarSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const micBtn = document.getElementById('btn-grammar-mic');
+            const feedback = document.getElementById('grammar-feedback');
+
+            if (!SpeechRecognition) {
+                return; // Mic just won't work on unsupported browsers, silent fail is fine here
+            }
+
+            const grammarRec = new SpeechRecognition();
+            grammarRec.lang = 'en-US';
+            grammarRec.interimResults = false;
+            grammarRec.maxAlternatives = 1;
+
+            micBtn.addEventListener('click', () => {
+                try { grammarRec.start(); } catch(e) {}
+            });
+
+            grammarRec.onstart = () => {
+                micBtn.classList.add('listening-mic');
+                feedback.innerHTML = `<span class="text-blue-500 animate-pulse"><i class="fa-solid fa-ear-listen mr-2"></i>Listening... Read the sentence!</span>`;
+            };
+
+            grammarRec.onresult = (event) => {
+                const transcript = event.results[0][0].transcript.toLowerCase().trim();
+                checkGrammarPronunciation(transcript);
+            };
+
+            grammarRec.onerror = (event) => {
+                feedback.innerHTML = `<span class="text-red-500"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Didn't catch that. Try again.</span>`;
+            };
+
+            grammarRec.onend = () => {
+                micBtn.classList.remove('listening-mic');
+            };
+        }
+
+        function checkGrammarPronunciation(transcript) {
+            const feedback = document.getElementById('grammar-feedback');
+            
+            // Build the target sentence fragments for partial matching
+            const part1 = currentGrammarAnswers[0].text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"");
+            const part2 = currentGrammarAnswers[1].text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"");
+            const part3 = currentGrammarAnswers[2].text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"");
+            
+            // Remove punctuation from transcript
+            const spoken = transcript.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").trim();
+
+            // We do a forgiving partial match check - if they get a good chunk of the words right
+            let matchPoints = 0;
+            if(spoken.includes(part1) || spoken.includes("if")) matchPoints++;
+            if(spoken.includes(part2) || spoken.includes("then")) matchPoints++;
+            if(spoken.includes(part3) || spoken.includes("else")) matchPoints++;
+
+            if (matchPoints >= 2 || spoken.length > 10) { 
+                grammarScore += 2;
+                document.getElementById('grammar-score-display').textContent = grammarScore;
+                feedback.innerHTML = `<span class="text-green-600 font-bold"><i class="fa-solid fa-star text-yellow-400"></i> Great reading! +2 Points!</span>`;
+                
+                // Hide mic after success
+                const micBtn = document.getElementById('btn-grammar-mic');
+                micBtn.classList.add('hidden');
+                micBtn.classList.remove('flex');
+            } else {
+                feedback.innerHTML = `<span class="text-orange-500">Almost! You said: <i class="text-gray-500">"${transcript}"</i>. Click mic to try again!</span>`;
+            }
+        }
+
+        function checkPronunciation(transcript) {
+            const feedback = document.getElementById('quiz-feedback');
+            const target = scratchData[currentQuizIndex].name.toLowerCase();
+            const spoken = transcript.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").trim();
+
+            if (spoken === target || spoken.includes(target) || target.includes(spoken)) {
+                quizScore++;
+                feedback.innerHTML = `<span class="text-green-500 font-bold"><i class="fa-solid fa-circle-check mr-2"></i>Excellent!</span>`;
+                document.getElementById('quiz-score-display').textContent = `Score: ${quizScore} / 8`;
+                
+                setTimeout(() => {
+                    if(document.getElementById('view-pronunciation-quiz').classList.contains('flex')) {
+                        nextQuizWord();
+                    }
+                }, 1500);
+            } else {
+                feedback.innerHTML = `<span class="text-orange-500">Almost! You said: <i class="text-gray-500">"${transcript}"</i></span>`;
+            }
+        }
+
+    </script>
+</body>
+</html>
